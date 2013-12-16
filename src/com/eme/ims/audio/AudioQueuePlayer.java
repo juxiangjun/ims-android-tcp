@@ -29,7 +29,7 @@ public class AudioQueuePlayer implements Runnable {
 			tmp[i] = contents[i];
 		}
 		short[] decodedData = new short[1024];
-		int size = speex.decode(tmp, decodedData , 74);
+		int size = speex.decode(tmp, decodedData , 75);
 		audioTrack.write(decodedData, 0, size);
 		
 	}
