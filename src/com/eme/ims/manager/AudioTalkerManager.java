@@ -33,7 +33,7 @@ public class AudioTalkerManager implements Runnable, Consumer {
 	private volatile boolean isRecording;
 	private volatile boolean isRunning;
 	private final Object mutex = new Object();
-	private List<processedData> list;
+	private List<byte[]> list;
 	
 	
 	private PropertyConfig config;
@@ -74,14 +74,16 @@ public class AudioTalkerManager implements Runnable, Consumer {
 		msg.setDirection(MsgProtocol.MsgDirection.CLIENT_TO_SERVER);
 		messageClient.sendMessage(msg);
 		
-		list = Collections.synchronizedList(new LinkedList<processedData>());
+		list = Collections.synchronizedList(new LinkedList<byte[]>());
+		//list = new ArrayList<byte[]>();
 	}
 	
 	@Override
 	public void putData(long ts, byte[] buf, int size) {
-		processedData data = new processedData();
-		System.arraycopy(buf, 0, data.processed, 0, size);
-		list.add(data);
+		//processedData data = new processedData();
+		byte[] decodedData = new byte[size];
+		System.arraycopy(buf, 0, decodedData, 0, size);
+		list.add(decodedData);
 	}
 	
 	@Override
@@ -98,7 +100,7 @@ public class AudioTalkerManager implements Runnable, Consumer {
 			}
 			startPcmRecorder();
 			while (this.isRecording()) {
-				if (list.size() > 0) {
+				if (list.size() > 8) {
 					publish();
 					Log.d(LOG_TAG, "list size = "+list.size());
 				} else {
@@ -110,9 +112,11 @@ public class AudioTalkerManager implements Runnable, Consumer {
 				}
 			}
 			recorder.stop();
-			while(list.size() > 0){
+			if (list.size() >8){
 				publish();
 				Log.d(LOG_TAG, "list size = "+list.size());
+			} else {
+				
 			}
 			stop();
 		}
@@ -126,16 +130,29 @@ public class AudioTalkerManager implements Runnable, Consumer {
 	}
 	
 	private void publish() {
-		processedData data = list.remove(0);
-		Message msg = new Message();
-		msg.setFrom("d63d65fb-78c8-40f6-9fcc-afc12b352823");
-		msg.setTo("d63d65fb-78c8-40f6-9fcc-afc12b352823");
-		msg.setGroupId("00000-00000-00000-00000-00000-000000");
-		msg.setCommandId(MsgProtocol.Command.SEND_P2P_MESSAGE);
-		msg.setType(MsgProtocol.MsgType.AUDIO_STREAM);
-		msg.setDirection(MsgProtocol.MsgDirection.CLIENT_TO_SERVER);
-		msg.setContents(data.processed);
-		messageClient.sendMessage(msg);
+		
+			Message msg = new Message();
+			msg.setFrom("d63d65fb-78c8-40f6-9fcc-afc12b352823");
+			msg.setTo("d63d65fb-78c8-40f6-9fcc-afc12b352823");
+			msg.setGroupId("00000-00000-00000-00000-00000-000000");
+			msg.setCommandId(MsgProtocol.Command.SEND_P2P_MESSAGE);
+			msg.setType(MsgProtocol.MsgType.AUDIO_STREAM);
+			msg.setDirection(MsgProtocol.MsgDirection.CLIENT_TO_SERVER);
+			byte[] tmp = new byte[1024];
+			int n = 0;
+			
+			for (int i=0; i<4; i++) {
+				System.out.print("list size:" + list.size());
+				byte[] data = list.remove(0);
+				System.arraycopy(data, 0, tmp, n, data.length);
+				n = n + data.length;
+			}
+			
+			byte[] contents = new byte[n];
+			System.arraycopy(tmp, 0, contents, 0, n);
+			msg.setContents(contents);
+			messageClient.sendMessage(msg);
+		
 	}
 	
 	public void stop() {

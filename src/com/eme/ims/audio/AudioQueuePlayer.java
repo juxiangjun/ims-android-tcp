@@ -1,6 +1,8 @@
 package com.eme.ims.audio;
 
 
+import java.util.Arrays;
+
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -24,13 +26,19 @@ public class AudioQueuePlayer implements Runnable {
 	public void putData(Message message, SpeexCodec speex) {
 		
 		byte[] contents = message.getContents();
-		byte[] tmp = new byte[75];
-		for (int i=0; i<75; i++) {
-			tmp[i] = contents[i];
+//		byte[] tmp = new byte[75];
+//		for (int i=0; i<75; i++) {
+//			tmp[i] = contents[i];
+//		}
+		
+		for (int i=0; i<32; i++) {
+			short[] decodedData = new short[1024];
+			byte[] data = Arrays.copyOfRange(contents, i*20, (i+1)*20);
+			int size = speex.decode(data, decodedData, 20);
+		//	Log.d("", decodedData.toString());
+			audioTrack.write(decodedData, 0, size);
 		}
-		short[] decodedData = new short[1024];
-		int size = speex.decode(tmp, decodedData , 75);
-		audioTrack.write(decodedData, 0, size);
+		
 		
 	}
 	
