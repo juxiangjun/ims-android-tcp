@@ -52,8 +52,8 @@ public class ImsMainActivity extends Activity implements IMessageAdapter {
 	
 	
 	private UIViewFactory factory= null;
-	private AudioTalkerManager audioTalkerManager ;
-	private AudioQueuePlayer audioQueuePlayer;
+	private static AudioTalkerManager audioTalkerManager ;
+	private static AudioQueuePlayer audioQueuePlayer;
 	private Button btnTalk;
 	
 	private SpeexCodec speex = new SpeexCodec();
@@ -216,7 +216,7 @@ public class ImsMainActivity extends Activity implements IMessageAdapter {
     
 	@Override
 	public void onReceivedP2PMessage(final Message message) {
-		Log.d(LOG_TAG, "Enter onReceivedP2PMessage method.");
+		//Log.d(LOG_TAG, "Enter onReceivedP2PMessage method.");
 		handler.post(new Runnable() {
             @Override
             public void run() {
@@ -224,7 +224,7 @@ public class ImsMainActivity extends Activity implements IMessageAdapter {
             		//audioManager.playOnlineAudio(new String(message.getContents()));
             		audioQueuePlayer.putData(message, speex);
             	}
-            	Log.d(LOG_TAG, new String(message.getContents()));
+            	//Log.d(LOG_TAG, new String(message.getContents()));
             }
         });
 	}
@@ -235,7 +235,7 @@ public class ImsMainActivity extends Activity implements IMessageAdapter {
 		handler.post(new Runnable() {
             @Override
             public void run() {
-            	Log.d(LOG_TAG, new String(message.getContents()));
+            	//Log.d(LOG_TAG, new String(message.getContents()));
             }
         });
 	}

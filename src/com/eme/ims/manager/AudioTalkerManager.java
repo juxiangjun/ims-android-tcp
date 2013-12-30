@@ -35,6 +35,10 @@ public class AudioTalkerManager implements Runnable, Consumer {
 	private final Object mutex = new Object();
 	private List<byte[]> list;
 	
+	private static int PACKAGES_TO_PUBLISH = 32;
+	
+	private static Boolean FINISHED_PUBLISH = true;
+	
 	
 	private PropertyConfig config;
 	private Context ctx;
@@ -88,8 +92,10 @@ public class AudioTalkerManager implements Runnable, Consumer {
 	
 	@Override
 	public void run() {
+		
 		while (this.isRunning()) {
 			synchronized (mutex) {
+				startPcmRecorder();
 				while (!this.isRecording) {
 					try {
 						mutex.wait();
@@ -98,22 +104,24 @@ public class AudioTalkerManager implements Runnable, Consumer {
 					}
 				}
 			}
-			startPcmRecorder();
+			
 			while (this.isRecording()) {
-				if (list.size() > 8) {
-					publish();
-					Log.d(LOG_TAG, "list size = "+list.size());
-				} else {
-					try {
-						Thread.sleep(20);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+				synchronized(FINISHED_PUBLISH) {
+					if (list.size() > PACKAGES_TO_PUBLISH && FINISHED_PUBLISH) {
+						publish();
+						//Log.d(LOG_TAG, "list size = "+list.size());
+					} else {
+						try {
+							Thread.sleep(20);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
 			recorder.stop();
 			if (list.size() >8){
-				publish();
+				//publish();
 				Log.d(LOG_TAG, "list size = "+list.size());
 			} else {
 				
@@ -123,14 +131,15 @@ public class AudioTalkerManager implements Runnable, Consumer {
 	}
 	
 	private void startPcmRecorder(){
-		recorder = new PcmRecorder(this, this.speex);
+		recorder = PcmRecorder.getInstance(this, speex);
 		recorder.setRecording(true);
 		Thread th = new Thread(recorder);
 		th.start();
 	}
 	
 	private void publish() {
-		
+		synchronized(FINISHED_PUBLISH) {
+			FINISHED_PUBLISH = false;
 			Message msg = new Message();
 			msg.setFrom("d63d65fb-78c8-40f6-9fcc-afc12b352823");
 			msg.setTo("d63d65fb-78c8-40f6-9fcc-afc12b352823");
@@ -141,8 +150,8 @@ public class AudioTalkerManager implements Runnable, Consumer {
 			byte[] tmp = new byte[1024];
 			int n = 0;
 			
-			for (int i=0; i<4; i++) {
-				System.out.print("list size:" + list.size());
+			for (int i=0; i<PACKAGES_TO_PUBLISH; i++) {
+				//System.out.print("list size:" + list.size());
 				byte[] data = list.remove(0);
 				System.arraycopy(data, 0, tmp, n, data.length);
 				n = n + data.length;
@@ -152,6 +161,8 @@ public class AudioTalkerManager implements Runnable, Consumer {
 			System.arraycopy(tmp, 0, contents, 0, n);
 			msg.setContents(contents);
 			messageClient.sendMessage(msg);
+			FINISHED_PUBLISH = true;
+		}
 		
 	}
 	

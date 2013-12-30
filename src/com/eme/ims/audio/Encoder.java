@@ -11,8 +11,18 @@ public class Encoder implements Runnable {
 	private byte[] processedData = new byte[1024];
 	private short[] rawdata = new short[1024];
 	private volatile boolean isRecording;
+	private static int bufferSize = 0;
 	
-	public Encoder(Consumer consumer, SpeexCodec speex) {
+	private static Encoder encoder;
+	
+	public static Encoder getInstance(Consumer consumer, SpeexCodec speex) {
+		if (encoder == null) {
+			encoder = new Encoder(consumer, speex);
+		}
+		return encoder;
+	}
+	
+	private Encoder(Consumer consumer, SpeexCodec speex) {
 		super();
 		this.consumer = consumer;
 		this.speex = speex;
@@ -35,6 +45,20 @@ public class Encoder implements Runnable {
 				continue;
 			}
 			synchronized (mutex) {
+//				int packageSize = bufferSize / 160;
+//				int remain = bufferSize % 160;
+//				int i=0;
+//				for (; i<packageSize; i++) {
+//					short[] tmp = new short[160];
+//					System.arraycopy(rawdata, i*160, tmp, 0, 160);
+//					getSize = speex.encode(tmp, 0, processedData, 160);
+//					consumer.putData(ts, processedData, getSize);
+//				}
+//				
+//				short[] tmp = new short[remain];
+//				System.arraycopy(rawdata, i*160, tmp, 0, remain);
+//				System.arraycopy(tmp, 0, rawdata, 0, remain);
+//				bufferSize = remain;
 				getSize = speex.encode(rawdata, 0, processedData, leftSize);
 				//getSize = aacEncoder.encode(rawdata, processedData);
 				setIdle();
@@ -49,6 +73,7 @@ public class Encoder implements Runnable {
 		synchronized (mutex) {
 			this.ts = ts;
 			System.arraycopy(data, 0, rawdata, 0, size);
+			//bufferSize = bufferSize + size;
 			this.leftSize = size;
 		}
 	}

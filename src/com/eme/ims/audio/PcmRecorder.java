@@ -12,8 +12,21 @@ public class PcmRecorder implements Runnable {
 	private static final int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
 	private Consumer consumer;
 	private SpeexCodec speex;
+//	private static AudioRecord recordInstance;
+//	private static int bufferSize = 0;
+//	private static int bufferRead = 0;
 	
-	public PcmRecorder(Consumer consumer, SpeexCodec speex) {
+	private static PcmRecorder pcmRecorder = null;
+	
+	public static PcmRecorder getInstance(Consumer consumer, SpeexCodec speex) {
+		if (pcmRecorder == null) {
+			pcmRecorder = new PcmRecorder(consumer, speex);
+		}
+		return pcmRecorder;
+	}
+	
+	
+	private PcmRecorder(Consumer consumer, SpeexCodec speex) {
 		super();
 		this.consumer = consumer;
 		this.speex = speex;
@@ -21,7 +34,7 @@ public class PcmRecorder implements Runnable {
 
 	public void run() {
 
-		Encoder encoder = new Encoder(this.consumer, speex );
+		Encoder encoder = Encoder.getInstance(consumer, speex);
 		Thread encodeThread = new Thread(encoder);
 		encoder.setRecording(true);
 		encodeThread.start();
@@ -43,7 +56,7 @@ public class PcmRecorder implements Runnable {
 
 		while (this.isRecording) {
 
-			bufferRead = recordInstance.read(tempBuffer, 0, bufferSize);
+			bufferRead = recordInstance.read(tempBuffer, 0, 160);
 			//bufferRead = recordInstance.read(tempBuffer, 0, 640);
 			
 			if (bufferRead == AudioRecord.ERROR_INVALID_OPERATION) {
